@@ -24,8 +24,12 @@ export default function FormProduk({
     }
   }
 
+  const fotoAktif = previewFoto || values.foto_url;
+
   return (
     <form action={formAction} className="flex max-w-xl flex-col gap-4">
+      <input type="hidden" name="id" value={values.id || produk.id || ""} />
+
       {state?.error && (
         <div className="rounded-xl border border-garis bg-permukaan p-4 text-sm text-bahaya">
           <p className="font-semibold">Terjadi kesalahan</p>
@@ -79,7 +83,7 @@ export default function FormProduk({
       </div>
 
       <div className="flex flex-col gap-1.5 text-sm font-semibold">
-        <span>Unggah foto (.jpg, .jpeg, .png, .webp, maks. 2MB)</span>
+        <span>Unggah foto baru (.jpg, .jpeg, .png, .webp, maks. 2MB)</span>
         <input
           type="file"
           name="foto_file"
@@ -90,14 +94,16 @@ export default function FormProduk({
         {errors.foto && (
           <span className="text-xs font-normal text-bahaya">{errors.foto}</span>
         )}
-        {(previewFoto || values.foto_url) && (
+        {fotoAktif && (
           <div className="mt-2 flex items-center gap-3">
             <img
-              src={previewFoto || values.foto_url}
+              src={fotoAktif}
               alt="Pratinjau foto"
               className="h-16 w-16 rounded-lg border border-garis object-cover"
             />
-            <span className="text-xs text-teks-lembut">Pratinjau foto produk</span>
+            <span className="text-xs text-teks-lembut">
+              {previewFoto ? "Pratinjau foto baru" : "Foto saat ini"}
+            </span>
           </div>
         )}
       </div>
