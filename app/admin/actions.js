@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { buatClientSesiAdmin } from "@/lib/supabase/server";
 
 export async function login(prevState, formData) {
@@ -258,6 +259,8 @@ export async function tambahProduk(prevState, formData) {
   }
 
   // 6. Selesai: arahkan kembali ke katalog admin dengan notifikasi sukses
+  revalidatePath("/admin");
+  revalidatePath("/");
   redirect("/admin?pesan=" + encodeURIComponent("Produk berhasil ditambahkan"));
 }
 
@@ -472,5 +475,49 @@ export async function ubahProduk(prevState, formData) {
   }
 
   // 8. Selesai: arahkan kembali ke katalog admin dengan notifikasi sukses
+  revalidatePath("/admin");
+  revalidatePath("/");
   redirect("/admin?pesan=" + encodeURIComponent("Produk berhasil diperbarui"));
+}
+
+export async function hapusProduk(prevState, formData) {
+  const data =
+    formData instanceof FormData
+      ? formData
+      : prevState instanceof FormData
+        ? prevState
+        : null;
+
+  // 1. Wajib memeriksa di server bahwa admin sudah login
+  const supabase = await buatClientSesiAdmin();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return { error: "Aksi ditolak: Anda harus login sebagai admin." };
+  }
+
+  // 2. Baca ID produk
+  const id = data?.get("id")?.toString();
+  if (!id) {
+    return { error: "ID produk tidak valid." };
+  }
+
+  // 3. Hapus produk dari database Supabase
+  const { error: delError } = await supabase
+    .from("produk")
+    .delete()
+    .eq("id", id);
+
+  if (delError) {
+    return {
+      error: `Gagal menghapus produk, silakan coba lagi: ${delError.message}`,
+    };
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/");
+  redirect("/admin?pesan=" + encodeURIComponent("Produk berhasil dihapus"));
 }
