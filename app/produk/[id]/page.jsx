@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import TombolWhatsApp from "@/components/TombolWhatsApp";
-import { formatRupiah } from "@/lib/format";
 import { buatClientServer } from "@/lib/supabase/server";
+import OpsiPesanProduk from "@/components/OpsiPesanProduk";
 
 export const dynamic = "force-dynamic";
 
@@ -28,16 +27,22 @@ export default async function HalamanDetailProduk({ params }) {
         className="aspect-square w-full rounded-2xl border border-garis bg-permukaan object-cover"
       />
       <div className="flex flex-col gap-4">
-        <Link href="/" className="text-sm text-teks-lembut underline underline-offset-4 hover:text-utama">
+        <Link
+          href="/"
+          className="text-sm text-teks-lembut underline underline-offset-4 hover:text-utama"
+        >
           Kembali ke katalog
         </Link>
         <p className="text-sm text-teks-lembut">{produk.kategori}</p>
-        <h1 className="text-3xl font-extrabold leading-tight tracking-tight">{produk.nama}</h1>
-        <p className="self-start rounded-md bg-harga-latar px-3 py-1 text-xl font-bold text-harga">
-          {formatRupiah(produk.harga)}
+        <h1 className="text-3xl font-extrabold leading-tight tracking-tight">
+          {produk.nama}
+        </h1>
+        <p className="max-w-prose leading-relaxed text-teks-lembut">
+          {produk.deskripsi}
         </p>
-        <p className="max-w-prose leading-relaxed text-teks-lembut">{produk.deskripsi}</p>
-        <TombolWhatsApp produk={produk} />
+
+        {/* Pilihan varian, jumlah, dan tombol WhatsApp (US-12) */}
+        <OpsiPesanProduk produk={produk} />
       </div>
     </article>
   );

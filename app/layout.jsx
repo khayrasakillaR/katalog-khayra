@@ -1,11 +1,18 @@
 import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import PwaManager from "@/components/PwaManager";
 import { toko } from "@/lib/toko";
 
 export const metadata = {
-  title: toko.nama,
+  title: `${toko.nama} - Katalog Produk`,
   description: toko.tagline,
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: toko.nama,
+  },
 };
 
 export default function RootLayout({ children }) {
@@ -18,11 +25,14 @@ export default function RootLayout({ children }) {
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap"
         />
+        <meta name="theme-color" content="#1f6b4f" />
+        <link rel="apple-touch-icon" href="/icons/icon-192.png" />
       </head>
       <body className="flex min-h-screen flex-col font-sans antialiased">
         <Header />
         <main className="mx-auto w-full max-w-5xl flex-1 px-4">{children}</main>
         <Footer />
+        <PwaManager />
       </body>
     </html>
   );
