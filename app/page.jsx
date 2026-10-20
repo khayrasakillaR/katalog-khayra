@@ -4,25 +4,69 @@ import KatalogProduk from "@/components/KatalogProduk";
 
 export const dynamic = "force-dynamic";
 
-export default async function HalamanKatalog() {
+export default async function HalamanKatalog({ searchParams }) {
+  const params = await searchParams;
+  const cari = params?.cari?.trim() || "";
+  const kategori = params?.kategori || "Semua";
+  const urutan = params?.urutan || "terbaru";
+  const halaman = Math.max(1, parseInt(params?.halaman || "1", 10));
+  const perHalaman = 6;
+
   let daftarProduk = [];
+  let totalProduk = 0;
+  let daftarKategori = ["Semua"];
   let pesanError = null;
 
   try {
     const supabase = buatClientServer();
-    const { data, error } = await supabase
-      .from("produk")
-      .select("*")
-      .order("id", { ascending: true });
+
+    // 1. Ambil daftar kategori unik dari database
+    const { data: semuaKat } = await supabase.from("produk").select("kategori");
+    if (semuaKat) {
+      const listKat = new Set();
+      semuaKat.forEach((p) => {
+        if (p.kategori) listKat.add(p.kategori);
+      });
+      daftarKategori = ["Semua", ...Array.from(listKat)];
+    }
+
+    // 2. Bangun query database untuk filter, urut, dan paginasi (US-11, US-15, US-16)
+    let query = supabase.from("produk").select("*", { count: "exact" });
+
+    if (kategori && kategori !== "Semua") {
+      query = query.eq("kategori", kategori);
+    }
+
+    if (cari) {
+      query = query.or(`nama.ilike.%${cari}%,deskripsi.ilike.%${cari}%`);
+    }
+
+    // Urutan (US-15)
+    if (urutan === "termurah") {
+      query = query.order("harga", { ascending: true });
+    } else if (urutan === "termahal") {
+      query = query.order("harga", { ascending: false });
+    } else {
+      query = query.order("id", { ascending: false });
+    }
+
+    // Paginasi di database query (US-16)
+    const offset = (halaman - 1) * perHalaman;
+    query = query.range(offset, offset + perHalaman - 1);
+
+    const { data, count, error } = await query;
 
     if (error) {
       pesanError = `Gagal memuat produk: ${error.message}`;
     } else {
       daftarProduk = data || [];
+      totalProduk = count || 0;
     }
   } catch (err) {
     pesanError = `Gagal terhubung ke database: ${err.message}`;
   }
+
+  const totalHalaman = Math.max(1, Math.ceil(totalProduk / perHalaman));
 
   return (
     <>
@@ -43,10 +87,17 @@ export default async function HalamanKatalog() {
           <div className="rounded-xl border border-garis bg-permukaan p-6 text-center text-bahaya">
             <p className="font-semibold">{pesanError}</p>
           </div>
-        ) : daftarProduk.length === 0 ? (
-          <p className="py-12 text-center text-teks-lembut">Belum ada produk</p>
         ) : (
-          <KatalogProduk daftarProduk={daftarProduk} />
+          <KatalogProduk
+            daftarProduk={daftarProduk}
+            totalProduk={totalProduk}
+            halaman={halaman}
+            totalHalaman={totalHalaman}
+            kategoriAktif={kategori}
+            cariAktif={cari}
+            urutanAktif={urutan}
+            daftarKategori={daftarKategori}
+          />
         )}
       </section>
     </>

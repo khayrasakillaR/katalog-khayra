@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import Input from "@/components/Input";
 import Tombol from "@/components/Tombol";
+import { buatDeskripsiAI } from "@/app/admin/actions";
 
 export default function FormProduk({
   produk = {},
@@ -11,6 +12,10 @@ export default function FormProduk({
 }) {
   const [state, formAction, isPending] = useActionState(action, null);
   const [previewFoto, setPreviewFoto] = useState(null);
+
+  // State untuk US-14 (AI Description)
+  const [loadingAI, setLoadingAI] = useState(false);
+  const [pesanAI, setPesanAI] = useState(null);
 
   const values = state?.values || produk;
   const errors = state?.errors || {};
@@ -21,6 +26,37 @@ export default function FormProduk({
       setPreviewFoto(URL.createObjectURL(file));
     } else {
       setPreviewFoto(null);
+    }
+  }
+
+  // Handler untuk pembuatan deskripsi otomatis oleh AI (US-14)
+  async function handleGenerateAI() {
+    const inputNama = document.querySelector('input[name="nama"]')?.value || "";
+    const inputKategori =
+      document.querySelector('input[name="kategori"]')?.value || "";
+
+    if (!inputNama.trim()) {
+      setPesanAI("Isi nama produk terlebih dahulu sebelum membuat deskripsi dengan AI.");
+      return;
+    }
+
+    setLoadingAI(true);
+    setPesanAI(null);
+
+    try {
+      const res = await buatDeskripsiAI(inputNama, inputKategori);
+      if (res.error) {
+        setPesanAI(res.error);
+      } else if (res.deskripsi) {
+        const textarea = document.querySelector('textarea[name="deskripsi"]');
+        if (textarea) {
+          textarea.value = res.deskripsi;
+        }
+      }
+    } catch (err) {
+      setPesanAI("Terjadi gangguan: " + err.message);
+    } finally {
+      setLoadingAI(false);
     }
   }
 
@@ -108,13 +144,46 @@ export default function FormProduk({
         )}
       </div>
 
-      <Input
-        label="Deskripsi"
-        name="deskripsi"
-        textarea
-        rows={4}
-        defaultValue={values.deskripsi || ""}
-      />
+      {/* Bagian Deskripsi dengan Tombol AI (US-14) */}
+      <div className="flex flex-col gap-1.5">
+        <div className="flex items-center justify-between">
+          <label
+            htmlFor="input-deskripsi"
+            className="text-sm font-semibold text-teks"
+          >
+            Deskripsi
+          </label>
+          <button
+            type="button"
+            onClick={handleGenerateAI}
+            disabled={loadingAI}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-garis bg-permukaan px-2.5 py-1 text-xs font-semibold text-utama transition-colors hover:bg-garis disabled:opacity-50"
+            title="Buat draf deskripsi produk secara otomatis dengan bantuan AI"
+          >
+            {loadingAI ? (
+              <>
+                <span className="animate-spin">⏳</span> Membuat deskripsi...
+              </>
+            ) : (
+              <>✨ Generate Deskripsi AI</>
+            )}
+          </button>
+        </div>
+
+        {pesanAI && (
+          <p className="rounded-lg border border-garis bg-permukaan p-2 text-xs text-bahaya">
+            {pesanAI}
+          </p>
+        )}
+
+        <textarea
+          id="input-deskripsi"
+          name="deskripsi"
+          rows={4}
+          defaultValue={values.deskripsi || ""}
+          className="w-full rounded-lg border border-garis bg-latar px-3 py-2.5 text-base text-teks placeholder:text-teks-lembut focus:border-utama focus:outline-none"
+        />
+      </div>
 
       <div className="flex gap-3 pt-2">
         <Tombol type="submit" disabled={isPending}>
